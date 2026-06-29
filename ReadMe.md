@@ -93,7 +93,8 @@ python scripts/AMLP_predict.py \
     --output_file prediction_dataset/prediction_output.xlsx
 ```
 ## 📊 Methodology Summary
-Backbone: A frozen LinAMP‑BERT model (ProtBERT fine‑tuned on 50,310 linear peptides) serves as the universal feature extractor.
-Chain‑as‑Prompt (CaP): The fatty acid chain type is embedded as a prompt token and prepended to the projected peptide sequence. A single‑layer Transformer encoder then processes this joint input, allowing the model to dynamically re‑weight peptide features based on the lipid environment.
-Classification: The output of the prompt token after self‑attention is directly fed into a lightweight classifier to predict antimicrobial activity.
-Inference: Predictions are made by averaging the softmax probabilities from 5 independently trained models (5‑fold cross‑validation). The final prediction is a direct probability score; a threshold of $\ge 0.5$ is applied to convert it to a class label.
+
+- **Backbone**: A frozen LinAMP‑BERT model (ProtBERT fine‑tuned on 50,310 linear peptides) serves as the universal feature extractor.
+- **Chain‑as‑Prompt (CaP)**: The fatty acid chain type is embedded as a prompt token and prepended to the projected peptide sequence. A single‑layer Transformer encoder then processes this joint input, allowing the model to dynamically re‑weight peptide features based on the lipid environment.
+- **Classification**: The output of the prompt token after self‑attention is directly fed into a lightweight classifier to predict antimicrobial activity.
+- **Inference**: Predictions are made by averaging the softmax probabilities from 5 independently trained models (5‑fold cross‑validation). The final prediction is a direct probability score; a threshold of $\ge 0.5$ is applied to convert it to a class label.
