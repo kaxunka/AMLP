@@ -36,44 +36,6 @@ The pre‑trained weights for each stage are publicly available on Hugging Face.
 ├── prediction_dataset/       # Directory for input/output files
 ├── environment.yml           # Complete software dependency configuration
 └── README.md
-
-AMLP is a deep learning framework designed for predicting the antimicrobial activity of **Linear Antimicrobial Peptides (Linear AMPs)** and **Lipopeptides**. By leveraging the **ProtBERT** architecture, the project introduces a **Chain-as-Prompt (CaP)** mechanism and **Consistency Regularization** to specifically model peptides modified with fatty acid chains.
-
-## 🚀 Key Features
-
-- **Multi-Stage Fine-tuning**: Progressive training from general protein representation to Linear AMPs and Lipopeptide-specific tasks.
-- **Chain-as-Prompt (CaP)**: Fatty acid chain information is encoded as learnable prompts injected into the model.
-- **Parameter‑Efficient Design**: By freezing the backbone and using an extremely compact bottleneck (32 dimensions), the downstream module contains only approximately 42,000 trainable parameters, effectively preventing overfitting on the small lipopeptide dataset.
-- **Ensemble Inference**: Built-in support for 5-fold cross-validation ensemble to ensure robust and reliable predictions.
-
-## 📦 Model Weights
-
-The pre-trained weights for each stage are hosted on Hugging Face. Please download them and place them in the corresponding `model/` directory:
-
-| Model Stage | Description | Download Link |
-| :--- | :--- | :--- |
-| **LinAMP-BERT** | Fine-tuned ProtBERT for Linear AMPs | [Frankie1116/LinAMP-BERT-weights](https://huggingface.co/Frankie1116/LinAMP-BERT-weights) |
-| **AMLP** | Final Ensemble Models for Lipopeptides | [Frankie1116/AMLP-weights](https://huggingface.co/Frankie1116/AMLP-weights) |
-
-## 📂 Project Structure
-
-```text
-├── scripts/
-│   ├── LinAMP_BERT_train.py  # Stage 1: Linear AMP fine-tuning
-│   ├── AMLP_train.py         # Stage 2: Lipopeptide consistency training
-│   └── AMLP_predict.py       # Ensemble inference and prediction
-├── data/
-│   ├── Linear_data/          # Datasets for Linear AMPs
-│   │   ├── train_dataset.csv
-│   │   ├── val_dataset.csv
-│   │   └── test_dataset.csv
-│   └── Lipo_data/            # Datasets for Lipopeptides
-│       ├── lipo_train_val.csv
-│       └── lipo_test_independent.csv
-├── model/
-│   ├── LinAMP-BERT/          # Store linearAMP.pth files here
-│   └── AMLP/                 # Store 5-fold .pth files here
-└── prediction_dataset/       # Input/Output directory for inference
 ```
 ## 🛠️ Requirements
 
