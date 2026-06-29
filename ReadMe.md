@@ -71,9 +71,8 @@ The input file for prediction **must contain** the following columns:
 ## 💻 Usage
 
 ###  Inference (Prediction)
-code
-```Bash
 Predict antimicrobial activity of linear peptides using LinAMP‑BERT：
+```Bash
 python scripts/LinAMP_BERT_predict.py \
     --model_dir model/LinAMP-BERT \
     --input_file prediction_dataset/linear_peptides.xlsx \
