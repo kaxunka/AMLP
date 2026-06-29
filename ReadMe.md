@@ -98,10 +98,14 @@ conda activate amlp-env
 
 The input file for prediction **must contain** the following columns:
 
-| Column Name | Description |
-|------------|------------|
-| `Sequence` | Amino acid sequence (e.g. `KLLKLLKKLLK`) |
-| `Fatty_acid_chain` | Modification type: `C0` (Linear), `C6`, `C8`, `C10`, `C12`, `C14`, `C16`, `C18` |
+| Column Name | Description | Example |
+|------------|------------|------------|
+| `Sequence` | Amino acid sequence (e.g. `KLLKLLKKLLK`) | GLLKIIKKLL |
+| `Fatty_acid_chain` | The type of N‑terminal fatty acid chain. | Modification type: `C0` (Linear), `C6`, `C8`, `C10`, `C12`, `C14`, `C16`, `C18` |
+
+### Supported chain types: `C6`, `C8`, `C10`, `C12`, `C14`, `C16`, `C18`.
+
+
 ## 💻 Usage
 ### 1. Training (Optional)
 If you wish to train the models from scratch:
