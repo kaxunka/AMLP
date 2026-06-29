@@ -1,4 +1,41 @@
 # AMLP: Antimicrobial Lipopeptide Activity Prediction
+# AMLP: De Novo Design of Antimicrobial Lipopeptides
+
+[![Python](https://img.shields.io/badge/Python-3.12-blue)]()
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-red)]()
+[![License](https://img.shields.io/badge/License-MIT-green)]()
+
+This repository provides the official implementation of the **AMLP (Antimicrobial Lipopeptide)** deep learning framework. It is designed for the *de novo* design and activity prediction of lipopeptides by integrating a **"Chain‑as‑Prompt"** mechanism with a two‑stage domain‑adaptive transfer learning strategy.
+
+## 🚀 Key Features
+
+- **Two‑Stage Transfer Learning**: A pre‑trained protein language model (ProtBERT) is first fine‑tuned on a large‑scale linear AMP dataset (LinAMP‑BERT), and a lightweight downstream module is then trained on the lipopeptide dataset to learn the modulation effect of N‑terminal fatty acid chains.
+- **Chain‑as‑Prompt (CaP)**: Rather than being treated as a static auxiliary input, the fatty acid chain type (C6–C18) is encoded as a learnable *prompt token*. This token is prepended to the peptide sequence and jointly processed by a single‑layer Transformer encoder, which dynamically re‑weights the amino acid features according to the lipid environment.
+- **Parameter‑Efficient Design**: By freezing the backbone and using an extremely compact bottleneck (32 dimensions), the downstream module contains only approximately 42,000 trainable parameters, effectively preventing overfitting on the small lipopeptide dataset.
+- **Ensemble Inference**: Built‑in support for 5‑fold cross‑validation ensemble to ensure robust and reliable predictions.
+
+## 📦 Model Weights
+
+The pre‑trained weights for each stage are publicly available on Hugging Face. Please download them and place them in the corresponding `model/` directory.
+
+| Model Stage | Description | Download Link |
+| :--- | :--- | :--- |
+| **LinAMP‑BERT** | ProtBERT fine‑tuned on 50,310 linear antimicrobial and non‑antimicrobial peptides. | [Frankie1116/LinAMP-BERT-weights](https://huggingface.co/Frankie1116/LinAMP-BERT-weights) |
+| **AMLP** | Final 5‑fold ensemble models for lipopeptide activity prediction. | [Frankie1116/AMLP-weights](https://huggingface.co/Frankie1116/AMLP-weights) |
+
+## 📂 Project Structure
+
+```text
+├── scripts/
+│   ├── LinAMP_BERT_train.py  # Stage 1: Fine‑tuning ProtBERT for Linear AMPs
+│   ├── AMLP_train.py         # Stage 2: Chain‑as‑Prompt Training on Lipopeptides
+│   └── AMLP_predict.py       # 5‑fold Ensemble Inference
+├── model/
+│   ├── LinAMP-BERT/          # Weights for the pre‑trained LinAMP‑BERT backbone
+│   └── AMLP/                 # 5‑fold .pth files for the final ensemble model
+├── prediction_dataset/       # Directory for input/output files
+├── environment.yml           # Complete software dependency configuration
+└── README.md
 
 AMLP is a deep learning framework designed for predicting the antimicrobial activity of **Linear Antimicrobial Peptides (Linear AMPs)** and **Lipopeptides**. By leveraging the **ProtBERT** architecture, the project introduces a **Chain-as-Prompt (CaP)** mechanism and **Consistency Regularization** to specifically model peptides modified with fatty acid chains.
 
