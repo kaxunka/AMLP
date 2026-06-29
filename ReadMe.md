@@ -87,21 +87,9 @@ All experiments were conducted using the following environment:
   
 A complete and detailed list of all dependencies is provided in the environment.yml file. To replicate the exact software environment, you can install all packages by running:
 
+```Bash
 conda env create -f environment.yml
 conda activate amlp-env
-
-- Python ≥ 3.8  
-- PyTorch ≥ 1.12  
-- transformers (Hugging Face)  
-- scikit-learn  
-- pandas  
-- numpy  
-- tqdm  
-- openpyxl  
-
-Install dependencies via pip:
-```bash
-pip install torch transformers scikit-learn pandas numpy tqdm openpyxl
 ```
 
 ## 📖 Data Specification
