@@ -62,31 +62,23 @@ The input file for prediction **must contain** the following columns:
 
 | Column Name | Description | Example |
 |------------|------------|------------|
-| `Sequence` | Amino acid sequence (e.g. `KLLKLLKKLLK`) | GLLKIIKKLL |
+| `Sequence` | The amino acid sequence of the core peptide. | GLLKIIKKLL |
 | `Fatty_acid_chain` | The type of N‑terminal fatty acid chain. |  `C12` |
 
 #### Supported chain types: `C6`, `C8`, `C10`, `C12`, `C14`, `C16`, `C18`.
 
 
 ## 💻 Usage
-### 1. Training (Optional)
-If you wish to train the models from scratch:
-Fine-tune Linear AMPs:
+```
+###  Inference (Prediction)
 code
 ```Bash
-python scripts/LinAMP_BERT_train.py --data_path data/Linear_data/train_dataset.csv --output_dir results/linamp_bert
+Predict antimicrobial activity of linear peptides using LinAMP‑BERT
+python scripts/LinAMP_BERT_predict.py \
+    --model_dir model/LinAMP-BERT \
+    --input_file prediction_dataset/linear_peptides.xlsx \
+    --output_file prediction_dataset/linear_predictions.xlsx
 ```
-Train AMLP with Consistency Loss:
-code
-```Bash
-python scripts/AMLP_train.py \
-    --lipo_full_path data/Lipo_data/lipo_full_data.csv \
-    --lipo_train_path data/Lipo_data/lipo_train_val.csv \
-    --linear_train_path data/Linear_data/linear_full_dataset.CSV \
-    --pretrain_model_path results/linamp_bert/best_model.pth \
-    --output_dir model/AMLP
-```
-### 2. Inference (Prediction)
 To run predictions using the pre-trained 5-fold ensemble:
 code
 ```Bash
