@@ -1,11 +1,11 @@
 # AMLP: Antimicrobial Lipopeptide Activity Prediction
-# AMLP: De Novo Design of Antimicrobial Lipopeptides
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue)]()
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-red)]()
 [![License](https://img.shields.io/badge/License-MIT-green)]()
 
 This repository provides the official implementation of the **AMLP (Antimicrobial Lipopeptide)** deep learning framework. It is designed for the *de novo* design and activity prediction of lipopeptides by integrating a **"Chain‑as‑Prompt"** mechanism with a two‑stage domain‑adaptive transfer learning strategy.
+
 
 ## 🚀 Key Features
 
@@ -43,7 +43,7 @@ AMLP is a deep learning framework designed for predicting the antimicrobial acti
 
 - **Multi-Stage Fine-tuning**: Progressive training from general protein representation to Linear AMPs and Lipopeptide-specific tasks.
 - **Chain-as-Prompt (CaP)**: Fatty acid chain information is encoded as learnable prompts injected into the model.
-- **Consistency Regularization**: A specialized loss function to maintain representation stability between lipopeptides and linear peptides.
+- **Parameter‑Efficient Design**: By freezing the backbone and using an extremely compact bottleneck (32 dimensions), the downstream module contains only approximately 42,000 trainable parameters, effectively preventing overfitting on the small lipopeptide dataset.
 - **Ensemble Inference**: Built-in support for 5-fold cross-validation ensemble to ensure robust and reliable predictions.
 
 ## 📦 Model Weights
@@ -64,12 +64,10 @@ The pre-trained weights for each stage are hosted on Hugging Face. Please downlo
 │   └── AMLP_predict.py       # Ensemble inference and prediction
 ├── data/
 │   ├── Linear_data/          # Datasets for Linear AMPs
-│   │   ├── linear_full_dataset.CSV
 │   │   ├── train_dataset.csv
 │   │   ├── val_dataset.csv
 │   │   └── test_dataset.csv
 │   └── Lipo_data/            # Datasets for Lipopeptides
-│       ├── lipo_full_data.csv
 │       ├── lipo_train_val.csv
 │       └── lipo_test_independent.csv
 ├── model/
@@ -78,6 +76,18 @@ The pre-trained weights for each stage are hosted on Hugging Face. Please downlo
 └── prediction_dataset/       # Input/Output directory for inference
 ```
 ## 🛠️ Requirements
+
+All experiments were conducted using the following environment:
+
+Python: 3.12
+PyTorch: 2.5.1
+CUDA: 12.4
+Transformers: 4.30+
+Other dependencies: scikit‑learn, pandas, numpy, tqdm, openpyxl, joblib, tensorboard
+A complete and detailed list of all dependencies is provided in the environment.yml file. To replicate the exact software environment, you can install all packages by running:
+
+conda env create -f environment.yml
+conda activate amlp-env
 
 - Python ≥ 3.8  
 - PyTorch ≥ 1.12  
