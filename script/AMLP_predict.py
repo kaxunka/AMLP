@@ -129,7 +129,7 @@ def main(args):
     # Load 5-fold ensemble models
     models = []
     for fold in range(5):
-        path = os.path.join(args.model_dir, f"best_model_fold{fold}.pth")
+        path = os.path.join(args.model_dir, f"model_fold{fold}.pth")
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model file not found: {path}")
         model = StrictChainAsPromptModel(
