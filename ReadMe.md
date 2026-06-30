@@ -82,22 +82,22 @@ Example Command (Demo Run):
 ```Bash
 python scripts/linAMP-BERT_predict.py \
     --model_dir model/linAMP-BERT \
-    --input_file prediction_dataset/demo_linear_peptides.csv \
-    --output_file prediction_dataset/demo_linear_peptides_output.csv
+    --input_file test_demo/demo_linear_peptides.csv \
+    --output_file test_demo/demo_linear_peptides_output.csv
 ```
 To run predictions using the pre-trained 5-fold ensemble:
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
-    --input_file prediction_dataset/your_input.xlsx \
-    --output_file prediction_dataset/prediction_results.xlsx
+    --input test_demo/your_input.xlsx \
+    --output test_demo/prediction_results.xlsx
 ```
 Example Command (Demo Run):
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
-    --input_file prediction_dataset/demo_lipopeptides.csv \
-    --output_file prediction_dataset/demo_lipopeptides_output.csv
+    --input test_demo/demo_lipopeptides.csv \
+    --output test_demo/demo_lipopeptides_output.csv
 ```
 ## 📊 Methodology Summary
 
