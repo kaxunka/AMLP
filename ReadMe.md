@@ -40,7 +40,7 @@ The pre‑trained weights for each stage are publicly available on Hugging Face.
 ## 🛠️ Requirements
 
 All experiments were conducted using the following environment:
-
+- **Operating System**: Windows 10
 - Python: 3.12
 - PyTorch: 2.5.1
 - CUDA: 12.4
@@ -78,6 +78,13 @@ python scripts/LinAMP_BERT_predict.py \
     --input_file prediction_dataset/linear_peptides.xlsx \
     --output_file prediction_dataset/linear_predictions.xlsx
 ```
+Example Command (Demo Run):
+```Bash
+python scripts/linAMP-BERT_predict.py \
+    --model_dir model/linAMP-BERT \
+    --input_file prediction_dataset/demo_linear_peptides.csv \
+    --output_file prediction_dataset/demo_linear_peptides_output.csv
+```
 To run predictions using the pre-trained 5-fold ensemble:
 ```Bash
 python scripts/AMLP_predict.py \
@@ -89,8 +96,8 @@ Example Command (Demo Run):
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
-    --input_file prediction_dataset/demo_lipopeptides.xlsx \
-    --output_file prediction_dataset/demo_lipopeptides_output.xlsx
+    --input_file prediction_dataset/demo_lipopeptides.csv \
+    --output_file prediction_dataset/demo_lipopeptides_output.csv
 ```
 ## 📊 Methodology Summary
 
