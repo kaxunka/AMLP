@@ -1,216 +1,175 @@
-import argparse
-import os
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
+import argparse, os, torch, numpy as np, pandas as pd
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModel, AutoTokenizer
-import glob
-import warnings
+import torch.nn as nn
 
-warnings.filterwarnings("ignore")
-
-# ========================= 1. Configuration =========================
-
-VALID_CHAINS = ['C0', 'C6', 'C8', 'C10', 'C12', 'C14', 'C16', 'C18']
-
-
+# ---------- Basic configuration ----------
 def get_device():
+    """Return the available device (CUDA or CPU)."""
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-def get_standard_chain_vocab():
-    """Mapping logic consistent with training: C0 is treated as NULL."""
-    chains = ['C6', 'C8', 'C10', 'C12', 'C14', 'C16', 'C18']
-    sorted_chains = sorted(chains)
-    vocab = {c: i for i, c in enumerate(sorted_chains)}
+def create_chain_vocab():
+    """Create a vocabulary for fatty acid chain types."""
+    chains = ["C6", "C8", "C10", "C12", "C14", "C16", "C18"]
+    vocab = {c: i for i, c in enumerate(chains)}
     vocab['<UNK>'] = len(vocab)
-    vocab['NULL'] = len(vocab)
     return vocab
 
-
-# ========================= 2. Dataset Logic =========================
-
-class LipopeptideInferenceDataset(Dataset):
-    def __init__(self, df, tokenizer, chain_vocab, max_len=100):
+# ---------- Dataset for prediction (no labels required) ----------
+class LipopeptideDataset(Dataset):
+    def __init__(self, df, tokenizer, chain_vocab, max_len=40):
+        self.df = df.reset_index(drop=True)
         self.tokenizer = tokenizer
         self.chain_vocab = chain_vocab
         self.max_len = max_len
-        self.unk_idx = chain_vocab.get('<UNK>', 0)
-        self.samples = []
-
-        for idx, row in df.iterrows():
-            seq = str(row['Sequence']).strip()
-            # Updated from 'Chain' to 'Fatty_acid_chain'
-            chain = str(row['Fatty_acid_chain']).strip().upper()
-
-            if chain not in VALID_CHAINS:
-                print(f"Warning: Row {idx} has invalid fatty acid chain '{chain}', skipping.")
-                continue
-
-            # C0 (linear peptide behavior) maps to NULL
-            real_chain_str = 'NULL' if chain == 'C0' else chain
-
-            self.samples.append({
-                'Sequence': seq,
-                'Input_Chain': chain,
-                'Real_Chain_Str': real_chain_str,
-                'Original_Index': idx
-            })
+        self.unk = chain_vocab['<UNK>']
 
     def __len__(self):
-        return len(self.samples)
+        return len(self.df)
 
     def __getitem__(self, idx):
-        item = self.samples[idx]
-        fmt_seq = ' '.join(list(item['Sequence']))
-        encoding = self.tokenizer(
-            fmt_seq, truncation=True, padding='max_length',
-            max_length=self.max_len, return_tensors='pt'
-        )
-        chain_idx = self.chain_vocab.get(item['Real_Chain_Str'], self.unk_idx)
-
+        row = self.df.iloc[idx]
+        seq = ' '.join(list(row['Sequence']))
+        chain_idx = self.chain_vocab.get(row['Fatty_acid_chain'], self.unk)
+        enc = self.tokenizer(seq, truncation=True, padding='max_length',
+                             max_length=self.max_len, return_tensors='pt')
         return {
-            'input_ids': encoding['input_ids'].squeeze(0),
-            'attention_mask': encoding['attention_mask'].squeeze(0),
-            'chain_index': torch.tensor(chain_idx, dtype=torch.long),
-            'Original_Index': item['Original_Index']
+            'input_ids': enc['input_ids'].squeeze(0),
+            'attention_mask': enc['attention_mask'].squeeze(0),
+            'chain_index': torch.tensor(chain_idx, dtype=torch.long)
         }
 
-
-# ========================= 3. Model Architecture =========================
-
-class LipopeptideConsistencyModel(nn.Module):
-    """Inference version of the consistency model."""
-
-    def __init__(self, chain_vocab_size, model_name="Rostlab/prot_bert", embedding_dim=128):
+# ---------- Model definition (identical to training) ----------
+class StrictChainAsPromptModel(nn.Module):
+    def __init__(self, chain_vocab_size, reduced_dim=32, dropout=0.3,
+                 model_name="Rostlab/prot_bert"):
         super().__init__()
         self.peptide_encoder = AutoModel.from_pretrained(model_name)
         self.hidden_size = self.peptide_encoder.config.hidden_size
-
-        self.chain_embedding = nn.Embedding(chain_vocab_size, embedding_dim)
-        self.chain_projector = nn.Sequential(
-            nn.Linear(embedding_dim, self.hidden_size),
-            nn.LayerNorm(self.hidden_size),
-            nn.GELU()
+        for p in self.peptide_encoder.parameters():
+            p.requires_grad = False
+        self.seq_projector = nn.Sequential(
+            nn.Linear(self.hidden_size, reduced_dim),
+            nn.LayerNorm(reduced_dim),
+            nn.Dropout(dropout)
         )
-        self.adapter_down = nn.Linear(self.hidden_size, 256)
-        self.adapter_act = nn.GELU()
-        self.adapter_up = nn.Linear(256, self.hidden_size)
-        self.adapter_norm = nn.LayerNorm(self.hidden_size)
-
-        self.attention_pool = nn.Sequential(nn.Linear(self.hidden_size, 1), nn.Tanh())
-        self.classifier = nn.Sequential(
-            nn.Linear(self.hidden_size, 64),
-            nn.LayerNorm(64),
-            nn.GELU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, 2)
-        )
-
-    def _forward_adapter(self, x):
-        return self.adapter_norm(self.adapter_up(self.adapter_act(self.adapter_down(x))) + x)
-
-    def _get_pooled_feature(self, features, mask):
-        attn_scores = self.attention_pool(features)
-        attn_scores = attn_scores.masked_fill(mask.unsqueeze(-1) == 0, -1e9)
-        attn_weights = F.softmax(attn_scores, dim=1)
-        return torch.sum(features * attn_weights, dim=1)
+        self.chain_embed = nn.Embedding(chain_vocab_size, reduced_dim)
+        enc_layer = nn.TransformerEncoderLayer(
+            d_model=reduced_dim, nhead=2, dim_feedforward=reduced_dim * 2,
+            dropout=dropout, activation='gelu', batch_first=True)
+        self.interaction = nn.TransformerEncoder(enc_layer, num_layers=1)
+        self.classifier = nn.Linear(reduced_dim, 2)
 
     def forward(self, input_ids, attention_mask, chain_index):
-        bert_out = self.peptide_encoder(input_ids, attention_mask).last_hidden_state
-        prompt = self.chain_projector(self.chain_embedding(chain_index)).unsqueeze(1)
+        bsz = input_ids.size(0)
+        with torch.no_grad():
+            bert_out = self.peptide_encoder(input_ids, attention_mask).last_hidden_state
+        seq = self.seq_projector(bert_out)
+        prompt = self.chain_embed(chain_index).unsqueeze(1)
+        x = torch.cat([prompt, seq], dim=1)
+        pmask = torch.ones((bsz, 1), device=input_ids.device, dtype=attention_mask.dtype)
+        mask = torch.cat([pmask, attention_mask], dim=1)
+        key_pad = (mask == 0)
+        x = self.interaction(x, src_key_padding_mask=key_pad)
+        cls = x[:, 0, :]
+        return self.classifier(cls)
 
-        prompt_mask = torch.ones((input_ids.size(0), 1), device=input_ids.device)
-        extended_mask = torch.cat([prompt_mask, attention_mask], dim=1)
+# ---------- Load weights with backward compatibility ----------
+def load_model_with_fix(model, path, device):
+    state = torch.load(path, map_location=device)
+    fixed = {}
+    for k, v in state.items():
+        k = k.replace("chain_prompt_embedding", "chain_embed")
+        k = k.replace("interaction_layer", "interaction")
+        if k.startswith("classifier.1."):
+            k = k.replace("classifier.1.", "classifier.")
+        fixed[k] = v
+    model.load_state_dict(fixed, strict=False)
+    return model
 
-        full_input = torch.cat([prompt, bert_out], dim=1)
-        z = self._get_pooled_feature(self._forward_adapter(full_input), extended_mask)
-        return self.classifier(z)
+# ---------- Ensemble inference ----------
+def ensemble_predict(models, loader, device):
+    all_probs = []
+    with torch.no_grad():
+        for model in models:
+            model.eval()
+            probs = []
+            for batch in loader:
+                ids = batch['input_ids'].to(device)
+                mask = batch['attention_mask'].to(device)
+                chain = batch['chain_index'].to(device)
+                logits = model(ids, mask, chain)
+                prob = torch.softmax(logits, dim=1)[:, 1]
+                probs.extend(prob.cpu().numpy())
+            all_probs.append(np.array(probs))
+    avg_prob = np.mean(all_probs, axis=0)
+    return avg_prob
 
-
-# ========================= 4. Inference Engine =========================
-
+# ---------- Main prediction function ----------
 def main(args):
     device = get_device()
-    chain_vocab = get_standard_chain_vocab()
+    # Read input file (CSV or Excel)
+    input_path = args.input
+    if input_path.endswith('.csv'):
+        df = pd.read_csv(input_path)
+    elif input_path.endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(input_path)
+    else:
+        raise ValueError("Unsupported file format. Please provide a .csv or .xlsx file.")
+
+    # Verify required columns
+    if 'Sequence' not in df.columns or 'Fatty_acid_chain' not in df.columns:
+        raise ValueError("Input file must contain 'Sequence' and 'Fatty_acid_chain' columns.")
+
+    chain_vocab = create_chain_vocab()
     tokenizer = AutoTokenizer.from_pretrained("Rostlab/prot_bert")
-
-    print(f"Loading input: {args.input_file}")
-    df = pd.read_csv(args.input_file) if args.input_file.endswith('.csv') else pd.read_excel(args.input_file)
-
-    # Validate columns
-    required = ['Sequence', 'Fatty_acid_chain']
-    for col in required:
-        if col not in df.columns:
-            raise ValueError(f"Required column '{col}' missing from input file.")
-
-    dataset = LipopeptideInferenceDataset(df, tokenizer, chain_vocab, max_len=100)
-    if not dataset:
-        print("No valid sequences to process.")
-        return
+    dataset = LipopeptideDataset(df, tokenizer, chain_vocab)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
-    # Locate fold models
-    model_paths = sorted(glob.glob(os.path.join(args.model_dir, "model_fold_*.pth")))
-    if not model_paths:
-        raise FileNotFoundError(f"No .pth files found in {args.model_dir}")
+    # Load 5-fold ensemble models
+    models = []
+    for fold in range(5):
+        path = os.path.join(args.model_dir, f"best_model_fold{fold}.pth")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model file not found: {path}")
+        model = StrictChainAsPromptModel(
+            chain_vocab_size=len(chain_vocab),
+            reduced_dim=args.reduced_dim,
+            dropout=args.dropout
+        ).to(device)
+        load_model_with_fix(model, path, device)
+        models.append(model)
+        print(f"Loaded fold {fold} model.")
 
-    all_fold_probs = np.zeros((len(dataset), len(model_paths)))
+    # Run ensemble prediction
+    avg_prob = ensemble_predict(models, loader, device)
 
-    # Ensemble Inference
-    for i, path in enumerate(model_paths):
-        print(f"Running Fold {i + 1}/{len(model_paths)}: {os.path.basename(path)}")
-        model = LipopeptideConsistencyModel(len(chain_vocab)).to(device)
+    # Add predicted probability and binary label (threshold = 0.5)
+    df['Predicted Probability'] = avg_prob
+    df['Predicted Label'] = (avg_prob >= 0.5).astype(int)  # 1: antimicrobial, 0: non-antimicrobial
 
-        # Load weights
-        state = torch.load(path, map_location=device)
-        # Handle different saving formats (Stage 2/3 variants)
-        new_state = {k.replace('model.', '').replace('base_model.', ''): v for k, v in state.items()}
-        model.load_state_dict(new_state, strict=False)
-        model.eval()
+    # Save output (same format as input if not specified)
+    output_path = args.output
+    if not output_path:
+        base = os.path.splitext(os.path.basename(input_path))[0]
+        output_path = f"{base}_predictions.csv" if input_path.endswith('.csv') else f"{base}_predictions.xlsx"
 
-        fold_probs = []
-        with torch.no_grad():
-            for batch in tqdm(loader, leave=False):
-                logits = model(batch['input_ids'].to(device),
-                               batch['attention_mask'].to(device),
-                               batch['chain_index'].to(device))
-                fold_probs.extend(torch.softmax(logits, dim=1)[:, 1].cpu().numpy())
-
-        all_fold_probs[:, i] = fold_probs
-        del model
-        torch.cuda.empty_cache()
-
-    # Aggregate results (Mean ensemble)
-    mean_probs = np.mean(all_fold_probs, axis=1)
-
-    results = []
-    for idx, prob in enumerate(mean_probs):
-        orig_info = dataset.samples[idx]
-        row_dict = df.iloc[orig_info['Original_Index']].to_dict()
-        row_dict['Probability'] = round(float(prob), 4)
-        row_dict['Prediction'] = 1 if prob >= 0.5 else 0
-        results.append(row_dict)
-
-    output_df = pd.DataFrame(results)
-    save_path = args.output_file if args.output_file else "predictions.xlsx"
-
-    if save_path.endswith('.csv'):
-        output_df.to_csv(save_path, index=False)
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
+    if output_path.endswith('.csv'):
+        df.to_csv(output_path, index=False)
     else:
-        output_df.to_excel(save_path, index=False)
-    print(f"Process complete. Results saved to: {save_path}")
+        df.to_excel(output_path, index=False)
 
+    print(f"Prediction finished. Output saved to {output_path}")
+    print(f"Number of sequences predicted as antimicrobial (≥0.5): {(df['Predicted Label'] == 1).sum()}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="AMLP Model Ensemble Inference")
-    parser.add_argument("--model_dir", type=str, required=True, help="Directory containing model_fold_*.pth files")
-    parser.add_argument("--input_file", type=str, required=True,
-                        help="CSV/Excel file with Sequence and Fatty_acid_chain")
-    parser.add_argument("--output_file", type=str, default=None)
-    parser.add_argument("--batch_size", type=int, default=32)
-    main(parser.parse_args())
+    parser = argparse.ArgumentParser(description="AMLP prediction script")
+    parser.add_argument("--input", required=True, help="Path to input CSV or Excel file (must contain 'Sequence' and 'Fatty_acid_chain')")
+    parser.add_argument("--model_dir", required=True, help="Directory containing best_model_fold0.pth ~ best_model_fold4.pth")
+    parser.add_argument("--output", default=None, help="Output file path")
+    parser.add_argument("--reduced_dim", type=int, default=32, help="Reduced dimension used during training")
+    parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate used during training")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for inference")
+    args = parser.parse_args()
+    main(args)
