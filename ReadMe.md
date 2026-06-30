@@ -85,12 +85,12 @@ python scripts/AMLP_predict.py \
     --input_file prediction_dataset/your_input.xlsx \
     --output_file prediction_dataset/prediction_results.xlsx
 ```
-Example Command (Test Run):
+Example Command (Demo Run):
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
-    --input_file prediction_dataset/your_lipopeptide.xlsx \
-    --output_file prediction_dataset/prediction_output.xlsx
+    --input_file prediction_dataset/lipopeptide_demo.xlsx \
+    --output_file prediction_dataset/demo_output.xlsx
 ```
 ## 📊 Methodology Summary
 
