@@ -89,8 +89,8 @@ Example Command (Demo Run):
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
-    --input_file prediction_dataset/lipopeptide_demo.xlsx \
-    --output_file prediction_dataset/demo_output.xlsx
+    --input_file prediction_dataset/demo_lipopeptides.xlsx \
+    --output_file prediction_dataset/demo_lipopeptides_output.xlsx
 ```
 ## 📊 Methodology Summary
 
