@@ -44,7 +44,7 @@ All experiments were conducted using the following environment:
 - Python: 3.12
 - PyTorch: 2.5.1
 - CUDA: 12.4
-- Transformers: 4.30+
+- Transformers: 4.51 
 - Other dependencies: scikit‑learn, pandas, numpy, tqdm, openpyxl, joblib, tensorboard
   
 A complete and detailed list of all dependencies is provided in the environment.yml file. To replicate the exact software environment, you can install all packages by running:
