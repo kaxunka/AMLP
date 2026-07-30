@@ -44,7 +44,7 @@ All experiments were conducted using the following environment:
 - Python: 3.12
 - PyTorch: 2.5.1
 - CUDA: 12.4
-- Transformers: 4.51 
+- Transformers: 4.51.3 (automatic compatibility with 5.x and above; for exact reproduction, see environment.yml)
 - Other dependencies: scikit‑learn, pandas, numpy, tqdm, openpyxl, joblib, tensorboard
   
 A complete and detailed list of all dependencies is provided in the environment.yml file. To replicate the exact software environment, you can install all packages by running:
@@ -69,7 +69,20 @@ The input file for prediction **must contain** the following columns:
 
 
 ## 💻 Usage
-
+### Training
+**Stage 1: Fine‑tune LinAMP‑BERT on linear peptides**
+```bash
+python scripts/LinAMP_BERT_train.py \
+    --data_path data/linear_peptides.csv \
+    --output_dir model/LinAMP-BERT
+```
+**Stage 2: Train the AMLP model with Chain‑as‑Prompt**
+```bash
+python scripts/AMLP_train.py \
+    --lipo_path data/lipo_train.csv \
+    --pretrain_model model/LinAMP-BERT/best_model.pth \
+    --output_dir model/AMLP
+```
 ###  Inference (Prediction)
 Predict antimicrobial activity of linear peptides using LinAMP‑BERT：
 ```Bash
