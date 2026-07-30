@@ -73,13 +73,13 @@ The input file for prediction **must contain** the following columns:
 **Stage 1: Fine‑tune LinAMP‑BERT on linear peptides**
 ```bash
 python scripts/LinAMP_BERT_train.py \
-    --data_path data/linear_data/linear_full_dataset.csv \
+    --data_path data/Linear_data/linear_full_dataset.csv \
     --output_dir model/LinAMP-BERT
 ```
 **Stage 2: Train the AMLP model with Chain‑as‑Prompt**
 ```bash
 python scripts/AMLP_train.py \
-    --lipo_path data/lipo_data/lipo_train.csv \
+    --lipo_path data/Lipo_data/lipo_train.csv \
     --pretrain_model model/LinAMP-BERT/best_model.pth \
     --output_dir model/AMLP
 ```
