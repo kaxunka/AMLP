@@ -274,14 +274,6 @@ def main(args):
         mcc = matthews_corrcoef(all_val_labels, preds)
         if mcc > best_mcc:
             best_mcc = mcc; best_thr = thr
-    # print(f"CV optimal threshold (raw): {best_thr:.4f} (MCC: {best_mcc:.4f})")
-    # with open(os.path.join(args.output_dir, "cv_best_threshold.txt"), 'w') as f:
-    #     f.write(f"{best_thr:.4f}\n")
-    #
-    # iso = IsotonicRegression(out_of_bounds='clip', y_min=0.0, y_max=1.0)
-    # iso.fit(all_val_probs, all_val_labels)
-    # joblib.dump(iso, os.path.join(args.output_dir, 'calibrator.pkl'))
-    # print("Calibrator saved.")
 
 
     print("Training finished.")
