@@ -69,7 +69,7 @@ The input file for prediction **must contain** the following columns:
 
 
 ## 💻 Usage
-### Training
+### Training (optional)
 **Stage 1: Fine‑tune LinAMP‑BERT on linear peptides**
 ```bash
 python scripts/LinAMP_BERT_train.py \
