@@ -98,7 +98,7 @@ python scripts/linAMP-BERT_predict.py \
     --input test_demo/demo_linear_peptides.csv \
     --output test_demo/demo_linear_peptides_output.csv
 ```
-To Predict antimicrobial activity of linear peptides using AMLP(the pre-trained 5-fold ensemble):
+To Predict antimicrobial activity of lipopeptides using AMLP(the pre-trained 5-fold ensemble):
 ```Bash
 python scripts/AMLP_predict.py \
     --model_dir model/AMLP \
